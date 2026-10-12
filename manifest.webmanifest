@@ -1,0 +1,19 @@
+{
+  "name": "ovo 数独 💖",
+  "short_name": "ovo数独",
+  "description": "笨蛋ovo (✿◡‿◡)",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#FFF0F5",
+  "theme_color": "#FF7BAC",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
