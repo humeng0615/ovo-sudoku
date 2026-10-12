@@ -13,21 +13,18 @@ body.dark{--bg:#191926;--card:#252536;--alt:#2D2B40;--text:#F0E6F0;--muted:#9A8F
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;padding:0;width:100%;height:100%;overflow:hidden;overscroll-behavior:none;touch-action:none;}
 body{font-family:"PingFang SC","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column;align-items:center;padding:max(10px,env(safe-area-inset-top,10px)) 10px max(10px,env(safe-area-inset-bottom,10px));min-height:100dvh}
-
 .header{text-align:center;flex:0 0 auto;}
 h1{font-size:clamp(20px,6vw,26px);margin:2px 0;letter-spacing:1px;}
 .sub{font-size:11px;color:var(--muted);margin-bottom:6px;}
-
 .bar{display:flex;gap:5px;flex-wrap:wrap;justify-content:center;flex:0 0 auto;}
 .bar+.bar{margin-top:5px;}
 button,select{font:inherit;}
 button{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:7px 11px;font-weight:700;font-size:13px;cursor:pointer;touch-action:manipulation;box-shadow:0 2px 0 rgba(200,60,120,.25);}
 button:active{transform:translateY(1px);box-shadow:none;}
 select{padding:7px 8px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--text);font-size:13px;font-weight:700;}
-
+button:disabled{opacity:0.4;cursor:not-allowed;transform:none;box-shadow:none;}
 #info{display:flex;gap:14px;justify-content:center;align-items:center;flex:0 0 auto;margin:7px 0 5px;font-size:13px;color:var(--text);font-weight:700;}
 #info span{background:var(--card);padding:4px 12px;border-radius:20px;border:1px solid var(--line);}
-
 #board{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:repeat(9,1fr);grid-template-rows:repeat(9,1fr);gap:1px;width:min(96vw,min(72vh,440px));height:min(96vw,min(72vh,440px));aspect-ratio:1/1;background:var(--line);border:3px solid var(--accent);border-radius:10px;overflow:hidden;touch-action:manipulation;}
 .c{background:var(--card);display:flex;align-items:center;justify-content:center;font-size:clamp(15px,5.4vw,24px);font-weight:800;color:var(--accent);user-select:none;}
 .c.alt{background:var(--alt);}
@@ -40,26 +37,17 @@ select{padding:7px 8px;border-radius:12px;border:1px solid var(--line);backgroun
 .tb{border-bottom:2px solid var(--line);}
 .bb{border-bottom:3px solid var(--accent);}
 .br{border-right:3px solid var(--accent);}
-
 #status{flex:0 0 auto;margin-top:6px;font-size:13px;color:var(--accent);min-height:18px;text-align:center;font-weight:700;}
-
 #numpad{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;flex:0 0 auto;width:min(96vw,440px);margin-top:6px;}
 #numpad button{font-size:17px;padding:8px 0;border-radius:12px;}
 #numpad .erase{background:var(--line);color:var(--text);}
-#numpad .enter{background:var(--text);color:#fff;}
-
-body.numpad-open #board-wrap{display:none;}
-body.numpad-open #numpad{display:grid;flex:1 1 auto;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);width:min(86vw,360px);height:min(86vw,360px);gap:8px;margin:auto;}
-body.numpad-open #numpad .erase,body.numpad-open #numpad .enter{display:none;}
-body.numpad-open #numpad button{font-size:clamp(22px,8vw,34px);border-radius:16px;}
 </style>
 </head>
 <body>
 <div class="header">
   <h1>ovo 数独 💕</h1>
-  <div class="sub">笨蛋ovo 🐾</div>
+  <div class="sub">笨蛋ovo专用 🐾</div>
 </div>
-
 <div class="bar">
   <select id="diff">
     <option value="35">幼儿园</option>
@@ -70,43 +58,27 @@ body.numpad-open #numpad button{font-size:clamp(22px,8vw,34px);border-radius:16p
   <button onclick="clearSave()">清记录</button>
 </div>
 <div class="bar">
-  <button onclick="hintCell()">💡提示</button>
+  <button onclick="hintCell()" id="hintBtn">💡提示 (3)</button>
   <button onclick="check()">✓检查</button>
   <button onclick="toggleTheme()" id="themeBtn">🌙 深色</button>
 </div>
-
 <div id="info">
   <span id="timer">⏱ 00:00</span>
-  <span id="mistakes">❤️ 3</span>
 </div>
-
 <div id="board"></div>
-
 <div id="status">ovo～</div>
-
 <div id="numpad">
   <button data-n="1">1</button><button data-n="2">2</button><button data-n="3">3</button><button data-n="4">4</button><button data-n="5">5</button>
   <button data-n="6">6</button><button data-n="7">7</button><button data-n="8">8</button><button data-n="9">9</button>
   <button class="erase" id="erase">⌫</button>
 </div>
-
 <script>
 const KEY="ovo_sudoku_save_v1";
-let puzzle=[],solution=[],given=[],seconds=0,tid=null,mistakes=0,sel=null,finished=false;
-const board=document.getElementById('board');
+let puzzle=[],solution=[],given=[],seconds=0,tid=null,hints=3,sel=null,finished=false;
+const board=document.getElementById('board'),hintBtn=document.getElementById('hintBtn');
 
-function saveState(){
-  try{localStorage.setItem(KEY,JSON.stringify({puzzle,solution,given,seconds,mistakes,diff:+document.getElementById('diff').value,ts:Date.now()}));}catch(e){}
-}
-function loadState(){
-  try{
-    const s=localStorage.getItem(KEY);if(!s)return false;
-    const d=JSON.parse(s);if(!d.puzzle||d.puzzle.length!==9)return false;
-    puzzle=d.puzzle;solution=d.solution;given=d.given;seconds=d.seconds||0;mistakes=d.mistakes||0;
-    document.getElementById('diff').value=String(d.diff||35);
-    return true;
-  }catch(e){return false;}
-}
+function saveState(){try{localStorage.setItem(KEY,JSON.stringify({puzzle,solution,given,seconds,hints,diff:+document.getElementById('diff').value,ts:Date.now()}));}catch(e){}}
+function loadState(){try{const s=localStorage.getItem(KEY);if(!s)return false;const d=JSON.parse(s);if(!d.puzzle||d.puzzle.length!==9)return false;puzzle=d.puzzle;solution=d.solution;given=d.given;seconds=d.seconds||0;hints=d.hints||3;document.getElementById('diff').value=String(d.diff||35);return true;}catch(e){return false;}}
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
 function valid(g,r,c,n){for(let i=0;i<9;i++)if(g[r][i]===n||g[i][c]===n)return false;let br=r-r%3,bc=c-c%3;for(let i=0;i<3;i++)for(let j=0;j<3;j++)if(g[br+i][bc+j]===n)return false;return true;}
@@ -119,7 +91,8 @@ function newGame(){
   puzzle=solution.map(r=>r.slice());given=solution.map(r=>r.map(()=>true));
   let cells=shuffle([...Array(81).keys()]),removed=0;
   for(let id of cells){if(removed>=holes)break;let r=Math.floor(id/9),c=id%9;let b=puzzle[r][c];puzzle[r][c]=0;if(!unique(puzzle)){puzzle[r][c]=b;}else{given[r][c]=false;removed++;}}
-  seconds=0;mistakes=0;finished=false;sel=null;
+  seconds=0;hints=3;finished=false;sel=null;
+  hintBtn.disabled=false;hintBtn.textContent='💡提示 (3)';
   startTimer();render();saveState();setStatus('游戏开始啦');
 }
 
@@ -129,7 +102,7 @@ function render(){
     const d=document.createElement('div');
     let cls='c ';
     if(((r/3|0)+(c/3|0))%2)cls+='alt ';
-    if(sel&&sel.r===r&&sel.c===c)cls+='sel ';
+    if(sl&&sel.r===r&&sel.c===c)cls+='sel ';
     if(sel&&(sel.r===r||sel.c===c||(sel.r/3|0)===r/3&&(sel.c/3|0)===c/3))cls+='peer ';
     if(sel&&puzzle[sel.r][sel.c]&&puzzle[r][c]===puzzle[sel.r][sel.c]&&!(sel.r===r&&sel.c===c))cls+='same ';
     if(given[r][c])cls+='given ';
@@ -141,41 +114,44 @@ function render(){
     d.addEventListener('click',()=>{if(given[r][c]){sel=null;}else sel={r,c};render();});
     board.appendChild(d);
   }
-  document.getElementById('mistakes').textContent='❤️ '+(3-mistakes);
   document.getElementById('timer').textContent='⏱ '+fmt(seconds);
 }
 
 function place(n){
   if(!sel||given[sel.r][sel.c]||finished)return;
-  if(n===0){puzzle[sel.r][sel.c]=0;}
-  else{
-    puzzle[sel.r][sel.c]=n;
-    if(solution[sel.r][sel.c]!==n){mistakes++;if(mistakes>=1000){setStatus('💔 错 1000 次，ovo 心疼了');finished=true;stopTimer();}else setStatus('❌ 错咯，剩 '+(1000-mistakes)+' 次机会');}
-    else{setStatus('ovo～');}
-  }
+  if(n===0)puzzle[sel.r][sel.c]=0;
+  else puzzle[sel.r][sel.c]=n;
   sel=null;render();saveState();
   if(!finished&&isComplete()){stopTimer();setStatus('🎉 完成！用时 '+fmt(seconds));saveBest();finished=true;}
 }
 
-function hintCell(){if(finished)return;for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(!given[r][c]&&puzzle[r][c]!==solution[r][c]){puzzle[r][c]=solution[r][c];given[r][c]=true;sel=null;render();saveState();setStatus('给你提示咯 💡');if(isComplete()){stopTimer();setStatus('🎉 完成！用时 '+fmt(seconds));saveBest();finished=true;}return;}setStatus('没有可提示的格子哦');}
+function hintCell(){
+  if(finished||hints<=0)return;
+  for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(!given[r][c]&&puzzle[r][c]!==solution[r][c]){
+    puzzle[r][c]=solution[r][c];given[r][c]=true;hints--;
+    hintBtn.textContent='💡提示 ('+hints+')';
+    if(hints<=0)hintBtn.disabled=true;
+    sel=null;render();saveState();setStatus('ovo 给你提示啦 💡');
+    if(isComplete()){stopTimer();setStatus('🎉 完成！用时 '+fmt(seconds));saveBest();finished=true;}
+    return;
+  }
+  setStatus('没有可提示的格子哦');
+}
+
 function check(){if(finished)return;for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(puzzle[r][c]!==solution[r][c]){setStatus('❌ 还有错，再看看');return;}stopTimer();setStatus('🎉 完成！用时 '+fmt(seconds));saveBest();finished=true;}
 function toggleTheme(){document.body.classList.toggle('dark');const dark=document.body.classList.contains('dark');document.getElementById('themeBtn').textContent=dark?'🌸 粉色':'🌙 深色';try{localStorage.setItem('ovo_theme',dark?'dark':'pink');}catch(e){}}
 function clearSave(){try{localStorage.removeItem(KEY);}catch(e){}newGame();}
 function setStatus(t){document.getElementById('status').textContent=t;}
-
 function isComplete(){for(let r=0;r<9;r++)for(let c=0;c<9;c++)if(puzzle[r][c]!==solution[r][c])return false;return true;}
 function fmt(s){return String(s/60|0).padStart(2,'0')+':'+String(s%60).padStart(2,'0');}
 function startTimer(){stopTimer();tid=setInterval(()=>{seconds++;document.getElementById('timer').textContent='⏱ '+fmt(seconds);saveState();},1000);}
 function stopTimer(){if(tid)clearInterval(tid);}
-
 function diffName(){const v=document.getElementById('diff').value;return v==='35'?'幼儿园':v==='45'?'小学生':'大魔王';}
 function saveBest(){try{const k='ovo_best_'+diffName();const old=localStorage.getItem(k);if(!old||seconds<+old)localStorage.setItem(k,seconds);loadBest();}catch(e){}}
 function loadBest(){try{const v=localStorage.getItem('ovo_best_'+diffName());document.getElementById('best').textContent='最佳（'+diffName()+'）：'+(v?fmt(+v):'暂无');}catch(e){}}
-
 document.getElementById('diff').addEventListener('change',()=>{loadBest();newGame();});
 document.getElementById('erase').addEventListener('click',()=>place(0));
 document.querySelectorAll('#numpad button[data-n]').forEach(b=>b.addEventListener('click',()=>place(+b.dataset.n)));
-
 try{if(localStorage.getItem('ovo_theme')==='dark'){document.body.classList.add('dark');document.getElementById('themeBtn').textContent='🌸 粉色';}}catch(e){}
 loadBest();
 if(loadState()){render();setStatus('欢迎回来～接着玩');}
