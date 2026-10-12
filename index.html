@@ -150,7 +150,7 @@ function place(n){
   if(n===0){puzzle[sel.r][sel.c]=0;}
   else{
     puzzle[sel.r][sel.c]=n;
-    if(solution[sel.r][sel.c]!==n){mistakes++;if(mistakes>=3){setStatus('💔 错 3 次，ovo 心疼了');finished=true;stopTimer();}else setStatus('❌ 错咯，剩 '+(3-mistakes)+' 次机会');}
+    if(solution[sel.r][sel.c]!==n){mistakes++;if(mistakes>=1000){setStatus('💔 错 1000 次，ovo 心疼了');finished=true;stopTimer();}else setStatus('❌ 错咯，剩 '+(1000-mistakes)+' 次机会');}
     else{setStatus('ovo～');}
   }
   sel=null;render();saveState();
